@@ -3,6 +3,8 @@ import requests
 import pandas as pd
 from PIL import Image
 from io import BytesIO
+from urllib3.util import Retry
+from requests.adapters import HTTPAdapter
 
 # Set page configuration
 st.set_page_config(
@@ -53,16 +55,18 @@ st.markdown('<h1 style="color: red; text-align: center;">🌎 Country Informatio
 st.markdown('<p style="color:#02ecf0; text-align: center; font-size:15px; font-weight: bold;" class="country-name"">Explore countries around the world with colorful information</p>', unsafe_allow_html=True)
 
 # Function to fetch country data
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
+
 
 @st.cache_data
 def fetch_countries():
     try:
         session = requests.Session()
         retries = Retry(total=3, backoff_factor=1, status_forcelist=[502, 503, 504])
-        session.mount('https://', HTTPAdapter(max_retries=retries))
-        response = session.get("https://restcountries.com/v3.1/all", timeout=10)
+        adapter = HTTPAdapter(max_retries=retries)
+        session.mount('https://', adapter)
+
+        url = "https://restcountries.com/v3.1/all?fields=name,capital,flags,region,subregion,population,languages,currencies,maps"
+        response = session.get(url, timeout=10)
         response.raise_for_status()
         return response.json()
     except Exception as e:
